@@ -1,0 +1,16 @@
+/*
+!wp-config-sample.php
+!wp-content/
+wp-content/*
+!wp-content/themes
+wp-content/themes/twenty*
+!wp-content/mu-plugins
+!wp-content/plugins
+!.github/
+!.gitignore
+!.editorconfig
+!readme.md
+
+*.db
+*.log
+.DS_Store
