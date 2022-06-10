@@ -1,0 +1,131 @@
+name: Deploy to Production
+
+on: workflow_dispatch
+
+env:
+  INSTALL:  
+  SSH_HOST: 
+
+jobs:
+
+  deploy-root:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: '0'
+
+    - name: Install SSH key
+      uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.WPENGINE_SSH_KEY_PRIVATE }}
+        name: deploy-wpengine
+        known_hosts: ${{ secrets.KNOWN_HOSTS }}
+
+    - name: Deploy root
+      run: |
+        rsync -chavP --stats \
+          -e 'ssh -i ~/.ssh/deploy-wpengine' \
+          --exclude /.git/ \
+          --exclude /.github/ \
+          --exclude /.gitignore \
+          --exclude /.ssh/ \
+          --exclude /.editorconfig \
+          --exclude /wp-config-sample.php \
+          --exclude /wp-content/ \
+          --filter=':- /.gitignore' \
+          ./ "$INSTALL@$SSH_HOST:/sites/$INSTALL/"
+
+  deploy-plugins:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: '0'
+
+    - name: Install SSH key
+      uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.WPENGINE_SSH_KEY_PRIVATE }}
+        name: deploy-wpengine
+        known_hosts: ${{ secrets.KNOWN_HOSTS }}
+
+    - name: Deploy plugins
+      run: |
+        rsync -chavP --delete --stats \
+          -e 'ssh -i ~/.ssh/deploy-wpengine' \
+          --exclude /.git/ \
+          --exclude /.github/ \
+          --exclude /.gitignore \
+          --exclude /.ssh/ \
+          --filter=':- /.gitignore' \
+          wp-content/plugins/ "$INSTALL@$SSH_HOST:/sites/$INSTALL/wp-content/plugins"
+
+  deploy-muplugins:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: '0'
+
+    - name: Install SSH key
+      uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.WPENGINE_SSH_KEY_PRIVATE }}
+        name: deploy-wpengine
+        known_hosts: ${{ secrets.KNOWN_HOSTS }}
+
+    - name: Deploy mu-plugins
+      run: |
+        rsync -chavP --stats \
+          -e 'ssh -i ~/.ssh/deploy-wpengine' \
+          --exclude /.git/ \
+          --exclude /.github/ \
+          --exclude /.gitignore \
+          --exclude /.ssh/ \
+          --filter=':- /.gitignore' \
+          wp-content/mu-plugins/ "$INSTALL@$SSH_HOST:/sites/$INSTALL/wp-content/mu-plugins"
+
+  deploy-themes:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: '0'
+
+    - name: Install SSH key
+      uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.WPENGINE_SSH_KEY_PRIVATE }}
+        name: deploy-wpengine
+        known_hosts: ${{ secrets.KNOWN_HOSTS }}
+
+    - name: Deploy themes
+      run: |
+        rsync -chavP --delete --stats \
+          -e 'ssh -i ~/.ssh/deploy-wpengine' \
+          --exclude /.git/ \
+          --exclude /.github/ \
+          --exclude /.gitignore \
+          --exclude /.ssh/ \
+          --filter=':- /.gitignore' \
+          wp-content/themes/ "$INSTALL@$SSH_HOST:/sites/$INSTALL/wp-content/themes"
+
+  clear-caches:
+    runs-on: ubuntu-latest
+    needs: [ deploy-plugins, deploy-muplugins, deploy-themes, deploy-root ]
+
+    steps:
+    - name: Install SSH key
+      uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.WPENGINE_SSH_KEY_PRIVATE }}
+        name: deploy-wpengine
+        known_hosts: ${{ secrets.KNOWN_HOSTS }}
+
+    - name: Clear caches
+      run: ssh -i ~/.ssh/deploy-wpengine $INSTALL@$SSH_HOST 'wp cache flush; wp page-cache flush; wp cdn-cache flush'
