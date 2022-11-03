@@ -1,6 +1,22 @@
 name: Deploy to Staging
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_muplugins:
+        type: boolean
+        description: MU-Plugins
+        default: true
+      deploy_plugins:
+        type: boolean
+        description: Plugins
+      deploy_root:
+        type: boolean
+        description: Root files
+      deploy_themes:
+        type: boolean
+        description: Themes
+        default: true
 
 env:
   INSTALL:  
@@ -10,24 +26,19 @@ jobs:
 
   deploy-root:
     runs-on: ubuntu-latest
-
+    if: ${{ inputs.deploy_root }}
     steps:
-    - uses: actions/checkout@v2
+    
+    - uses: actions/checkout@v3
       with:
         fetch-depth: '0'
 
     - name: Install SSH key
-      uses: shimataro/ssh-key-action@v2
+      uses: benoitchantre/setup-ssh-authentication-action@1.0.0
       with:
-        key: ${{ secrets.WPENGINE_SSH_KEY_PRIVATE }}
-        name: deploy-wpengine
-        known_hosts: ${{ secrets.KNOWN_HOSTS }}
-        
-    - name: Set branch name
-      run: |
-        echo ${GITHUB_REF#refs/heads/} > .what-git-branch
-        cat .what-git-branch
-        scp -i ~/.ssh/deploy-wpengine .what-git-branch "$INSTALL@$SSH_HOST:/sites/$INSTALL/"
+        private-key: ${{ secrets.WPENGINE_SSH_KEY_PRIVATE }}
+        private-key-name: deploy-wpengine
+        known-hosts: ${{ secrets.KNOWN_HOSTS }}
 
     - name: Deploy root
       run: |
@@ -45,18 +56,19 @@ jobs:
 
   deploy-plugins:
     runs-on: ubuntu-latest
-
+    if: ${{ inputs.deploy_plugins }}
     steps:
-    - uses: actions/checkout@v2
+
+    - uses: actions/checkout@v3
       with:
         fetch-depth: '0'
 
     - name: Install SSH key
-      uses: shimataro/ssh-key-action@v2
+      uses: benoitchantre/setup-ssh-authentication-action@1.0.0
       with:
-        key: ${{ secrets.WPENGINE_SSH_KEY_PRIVATE }}
-        name: deploy-wpengine
-        known_hosts: ${{ secrets.KNOWN_HOSTS }}
+        private-key: ${{ secrets.WPENGINE_SSH_KEY_PRIVATE }}
+        private-key-name: deploy-wpengine
+        known-hosts: ${{ secrets.KNOWN_HOSTS }}
 
     - name: Deploy plugins
       run: |
@@ -71,18 +83,19 @@ jobs:
 
   deploy-muplugins:
     runs-on: ubuntu-latest
-
+    if: ${{ inputs.deploy_muplugins }}
     steps:
-    - uses: actions/checkout@v2
+
+    - uses: actions/checkout@v3
       with:
         fetch-depth: '0'
 
     - name: Install SSH key
-      uses: shimataro/ssh-key-action@v2
+      uses: benoitchantre/setup-ssh-authentication-action@1.0.0
       with:
-        key: ${{ secrets.WPENGINE_SSH_KEY_PRIVATE }}
-        name: deploy-wpengine
-        known_hosts: ${{ secrets.KNOWN_HOSTS }}
+        private-key: ${{ secrets.WPENGINE_SSH_KEY_PRIVATE }}
+        private-key-name: deploy-wpengine
+        known-hosts: ${{ secrets.KNOWN_HOSTS }}
 
     - name: Deploy mu-plugins
       run: |
@@ -97,18 +110,19 @@ jobs:
 
   deploy-themes:
     runs-on: ubuntu-latest
-
+    if: ${{ inputs.deploy_themes }}
     steps:
-    - uses: actions/checkout@v2
+
+    - uses: actions/checkout@v3
       with:
         fetch-depth: '0'
 
     - name: Install SSH key
-      uses: shimataro/ssh-key-action@v2
+      uses: benoitchantre/setup-ssh-authentication-action@1.0.0
       with:
-        key: ${{ secrets.WPENGINE_SSH_KEY_PRIVATE }}
-        name: deploy-wpengine
-        known_hosts: ${{ secrets.KNOWN_HOSTS }}
+        private-key: ${{ secrets.WPENGINE_SSH_KEY_PRIVATE }}
+        private-key-name: deploy-wpengine
+        known-hosts: ${{ secrets.KNOWN_HOSTS }}
 
     - name: Deploy themes
       run: |
@@ -121,17 +135,37 @@ jobs:
           --filter=':- /.gitignore' \
           wp-content/themes/ "$INSTALL@$SSH_HOST:/sites/$INSTALL/wp-content/themes"
 
+  what-git-branch:
+    runs-on: ubuntu-latest
+    needs: [ deploy-plugins, deploy-muplugins, deploy-themes, deploy-root ]
+    if: ${{ always() && contains( needs.*.result, 'success' ) }}
+    steps:
+
+    - name: Install SSH key
+      uses: benoitchantre/setup-ssh-authentication-action@1.0.0
+      with:
+        private-key: ${{ secrets.WPENGINE_SSH_KEY_PRIVATE }}
+        private-key-name: deploy-wpengine
+        known-hosts: ${{ secrets.KNOWN_HOSTS }}
+
+    - name: Set branch name
+      run: |
+        echo ${GITHUB_REF#refs/heads/} > .what-git-branch
+        cat .what-git-branch
+        scp -i ~/.ssh/deploy-wpengine .what-git-branch "$INSTALL@$SSH_HOST:/sites/$INSTALL/"
+
   clear-caches:
     runs-on: ubuntu-latest
     needs: [ deploy-plugins, deploy-muplugins, deploy-themes, deploy-root ]
+    if: ${{ always() && contains( needs.*.result, 'success' ) }}
 
     steps:
     - name: Install SSH key
-      uses: shimataro/ssh-key-action@v2
+      uses: benoitchantre/setup-ssh-authentication-action@1.0.0
       with:
-        key: ${{ secrets.WPENGINE_SSH_KEY_PRIVATE }}
-        name: deploy-wpengine
-        known_hosts: ${{ secrets.KNOWN_HOSTS }}
+        private-key: ${{ secrets.WPENGINE_SSH_KEY_PRIVATE }}
+        private-key-name: deploy-wpengine
+        known-hosts: ${{ secrets.KNOWN_HOSTS }}
 
     - name: Clear caches
       run: ssh -i ~/.ssh/deploy-wpengine $INSTALL@$SSH_HOST 'wp cache flush; wp page-cache flush; wp cdn-cache flush'
