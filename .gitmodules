@@ -1,3 +1,9 @@
 [submodule "wp-content/mu-plugins/image-tag"]
 	path = wp-content/mu-plugins/image-tag
 	url = git@github.com:crstauf/Image_Tag.git
+[submodule "wp-content/mu-plugins/enhanced-dependencies"]
+	path = wp-content/mu-plugins/enhanced-dependencies
+	url = git@github.com:crstauf/enhanced-dependencies.git
+[submodule "wp-content/mu-plugins/cssllc"]
+	path = wp-content/mu-plugins/cssllc
+	url = git@github.com:cssllc/mu-plugins.git
