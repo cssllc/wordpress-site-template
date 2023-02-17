@@ -1,0 +1,3 @@
+[submodule "wp-content/mu-plugins/image-tag"]
+	path = wp-content/mu-plugins/image-tag
+	url = git@github.com:crstauf/Image_Tag.git
